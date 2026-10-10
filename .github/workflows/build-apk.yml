@@ -28,8 +28,6 @@ jobs:
 
       - name: Find and extract Android project
         run: |
-          echo "Repo files:"
-          ls -la
           mkdir -p source
           ZIP_FILE=$(find . -maxdepth 2 -type f -name '*.zip' | head -n 1)
           if [ -z "$ZIP_FILE" ]; then
@@ -43,6 +41,20 @@ jobs:
             exit 1
           fi
           echo "PROJECT_DIR=$(dirname "$PROJECT_FILE")" >> "$GITHUB_ENV"
+
+      - name: Fix Java and Kotlin JVM target
+        run: |
+          cd "$PROJECT_DIR"
+          if [ -f app/build.gradle.kts ]; then
+            printf '\nandroid {\n    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }\n}\n' >> app/build.gradle.kts
+            echo "Patched app/build.gradle.kts"
+          elif [ -f app/build.gradle ]; then
+            printf '\nandroid {\n    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }\n}\n' >> app/build.gradle
+            echo "Patched app/build.gradle"
+          else
+            echo "ERROR: app/build.gradle(.kts) not found."
+            exit 1
+          fi
 
       - name: Build APK
         run: |
